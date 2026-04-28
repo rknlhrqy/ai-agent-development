@@ -11,6 +11,7 @@ import { NotebookEditTool } from '@claude-code-best/builtin-tools/tools/Notebook
 import { WebFetchTool } from '@claude-code-best/builtin-tools/tools/WebFetchTool/WebFetchTool.js'
 import { TaskStopTool } from '@claude-code-best/builtin-tools/tools/TaskStopTool/TaskStopTool.js'
 import { BriefTool } from '@claude-code-best/builtin-tools/tools/BriefTool/BriefTool.js'
+import { DatabaseQueryTool } from '@claude-code-best/builtin-tools/tools/DatabaseQueryTool/DatabaseQueryTool.js'
 // Dead code elimination: conditional import for ant-only tools
 /* eslint-disable custom-rules/no-process-env-top-level, @typescript-eslint/no-require-imports */
 const REPLTool =
@@ -217,6 +218,7 @@ export function getAllBaseTools(): Tools {
     AskUserQuestionTool,
     SkillTool,
     EnterPlanModeTool,
+    DatabaseQueryTool,
     ...(process.env.USER_TYPE === 'ant' ? [ConfigTool] : []),
     ...(process.env.USER_TYPE === 'ant' ? [TungstenTool] : []),
     ...(SuggestBackgroundPRTool ? [SuggestBackgroundPRTool] : []),

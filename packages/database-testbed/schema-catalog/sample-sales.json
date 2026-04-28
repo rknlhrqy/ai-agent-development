@@ -1,0 +1,178 @@
+{
+  "catalogVersion": 1,
+  "database": "SalesAnalyticsDemo",
+  "dialect": "tsql",
+  "purpose": "Demo sales analytics database for natural-language-to-SQL testing.",
+  "defaultRowLimit": 100,
+  "businessRules": [
+    "Revenue is calculated from order_items as quantity * unit_price - discount_amount.",
+    "Use orders.order_date as the sale date unless the user specifically asks about payment or shipment timing.",
+    "Cancelled orders should be excluded from revenue metrics unless the user explicitly asks to include them.",
+    "An unpaid order is an order whose total payments are less than its order item revenue.",
+    "Late shipment examples can be approximated as delivered more than 7 days after shipped_date."
+  ],
+  "tables": [
+    {
+      "name": "dbo.regions",
+      "description": "Sales geography lookup table.",
+      "primaryKey": ["region_id"],
+      "columns": [
+        { "name": "region_id", "type": "int", "description": "Unique region identifier." },
+        { "name": "region_name", "type": "nvarchar(100)", "description": "Internal sales region name, such as Northeast or West." },
+        { "name": "country", "type": "nvarchar(100)", "description": "Country represented by the region." }
+      ]
+    },
+    {
+      "name": "dbo.sales_reps",
+      "description": "Employees responsible for selling to customers.",
+      "primaryKey": ["sales_rep_id"],
+      "foreignKeys": [{ "columns": ["region_id"], "references": "dbo.regions(region_id)" }],
+      "columns": [
+        { "name": "sales_rep_id", "type": "int", "description": "Unique sales representative identifier." },
+        { "name": "sales_rep_name", "type": "nvarchar(150)", "description": "Full name of the sales representative." },
+        { "name": "email", "type": "nvarchar(255)", "description": "Work email address." },
+        { "name": "region_id", "type": "int", "description": "Region assigned to the sales representative." },
+        { "name": "hire_date", "type": "date", "description": "Date the sales representative joined the company." }
+      ]
+    },
+    {
+      "name": "dbo.customers",
+      "description": "Customer master data.",
+      "primaryKey": ["customer_id"],
+      "foreignKeys": [{ "columns": ["region_id"], "references": "dbo.regions(region_id)" }],
+      "columns": [
+        { "name": "customer_id", "type": "int", "description": "Unique customer identifier." },
+        { "name": "customer_name", "type": "nvarchar(200)", "description": "Legal or display name of the customer." },
+        { "name": "customer_segment", "type": "nvarchar(50)", "description": "Commercial segment: SMB, Mid-Market, or Enterprise." },
+        { "name": "email", "type": "nvarchar(255)", "description": "Billing or operations email address." },
+        { "name": "city", "type": "nvarchar(100)", "description": "Customer city." },
+        { "name": "state_province", "type": "nvarchar(100)", "description": "Customer state or province." },
+        { "name": "country", "type": "nvarchar(100)", "description": "Customer country." },
+        { "name": "region_id", "type": "int", "description": "Sales geography for the customer." },
+        { "name": "created_at", "type": "datetime2(0)", "description": "Timestamp when the customer account was created." },
+        { "name": "is_active", "type": "bit", "description": "Whether the customer is active." }
+      ]
+    },
+    {
+      "name": "dbo.product_categories",
+      "description": "Product category lookup table.",
+      "primaryKey": ["category_id"],
+      "columns": [
+        { "name": "category_id", "type": "int", "description": "Unique product category identifier." },
+        { "name": "category_name", "type": "nvarchar(100)", "description": "Category name, such as Analytics Software or Support Plans." },
+        { "name": "description", "type": "nvarchar(500)", "description": "Longer category description." }
+      ]
+    },
+    {
+      "name": "dbo.products",
+      "description": "Products and services that can be sold.",
+      "primaryKey": ["product_id"],
+      "foreignKeys": [{ "columns": ["category_id"], "references": "dbo.product_categories(category_id)" }],
+      "columns": [
+        { "name": "product_id", "type": "int", "description": "Unique product identifier." },
+        { "name": "sku", "type": "nvarchar(50)", "description": "Unique stock keeping unit." },
+        { "name": "product_name", "type": "nvarchar(200)", "description": "Product display name." },
+        { "name": "category_id", "type": "int", "description": "Product category." },
+        { "name": "list_price", "type": "decimal(12,2)", "description": "Standard list price." },
+        { "name": "standard_cost", "type": "decimal(12,2)", "description": "Estimated cost used for margin calculations." },
+        { "name": "is_discontinued", "type": "bit", "description": "Whether the product is no longer sold." }
+      ]
+    },
+    {
+      "name": "dbo.orders",
+      "description": "Sales order header table. One row per order.",
+      "primaryKey": ["order_id"],
+      "foreignKeys": [
+        { "columns": ["customer_id"], "references": "dbo.customers(customer_id)" },
+        { "columns": ["sales_rep_id"], "references": "dbo.sales_reps(sales_rep_id)" }
+      ],
+      "columns": [
+        { "name": "order_id", "type": "int", "description": "Unique order identifier." },
+        { "name": "order_number", "type": "nvarchar(30)", "description": "Human-readable order number." },
+        { "name": "customer_id", "type": "int", "description": "Customer that placed the order." },
+        { "name": "sales_rep_id", "type": "int", "description": "Sales representative credited for the order." },
+        { "name": "order_date", "type": "date", "description": "Date the order was placed. Use this for sales date metrics." },
+        { "name": "status", "type": "nvarchar(30)", "description": "Order status, such as Open, Closed, or Cancelled." },
+        { "name": "currency_code", "type": "char(3)", "description": "Currency code for monetary values." }
+      ]
+    },
+    {
+      "name": "dbo.order_items",
+      "description": "Line items for each sales order.",
+      "primaryKey": ["order_item_id"],
+      "foreignKeys": [
+        { "columns": ["order_id"], "references": "dbo.orders(order_id)" },
+        { "columns": ["product_id"], "references": "dbo.products(product_id)" }
+      ],
+      "columns": [
+        { "name": "order_item_id", "type": "int", "description": "Unique order line identifier." },
+        { "name": "order_id", "type": "int", "description": "Parent order." },
+        { "name": "product_id", "type": "int", "description": "Product sold on this line." },
+        { "name": "quantity", "type": "int", "description": "Number of units sold." },
+        { "name": "unit_price", "type": "decimal(12,2)", "description": "Actual unit sale price." },
+        { "name": "discount_amount", "type": "decimal(12,2)", "description": "Total discount amount applied to this line." }
+      ],
+      "derivedMetrics": [
+        {
+          "name": "line_revenue",
+          "expression": "quantity * unit_price - discount_amount",
+          "description": "Net revenue for the order line."
+        },
+        {
+          "name": "line_margin",
+          "expression": "quantity * (unit_price - products.standard_cost) - discount_amount",
+          "description": "Approximate gross margin for the order line."
+        }
+      ]
+    },
+    {
+      "name": "dbo.payments",
+      "description": "Payments received against orders.",
+      "primaryKey": ["payment_id"],
+      "foreignKeys": [{ "columns": ["order_id"], "references": "dbo.orders(order_id)" }],
+      "columns": [
+        { "name": "payment_id", "type": "int", "description": "Unique payment identifier." },
+        { "name": "order_id", "type": "int", "description": "Order paid by this payment." },
+        { "name": "payment_date", "type": "date", "description": "Date payment was recorded." },
+        { "name": "amount", "type": "decimal(12,2)", "description": "Payment amount." },
+        { "name": "payment_method", "type": "nvarchar(50)", "description": "Payment method, such as Wire, ACH, or Credit Card." },
+        { "name": "payment_status", "type": "nvarchar(30)", "description": "Payment status, such as Paid, Partial, or Unpaid." }
+      ]
+    },
+    {
+      "name": "dbo.shipments",
+      "description": "Shipment status and delivery information for orders.",
+      "primaryKey": ["shipment_id"],
+      "foreignKeys": [{ "columns": ["order_id"], "references": "dbo.orders(order_id)" }],
+      "columns": [
+        { "name": "shipment_id", "type": "int", "description": "Unique shipment identifier." },
+        { "name": "order_id", "type": "int", "description": "Order being shipped." },
+        { "name": "shipped_date", "type": "date", "description": "Date the shipment left the warehouse." },
+        { "name": "delivered_date", "type": "date", "description": "Date the shipment was delivered." },
+        { "name": "carrier", "type": "nvarchar(100)", "description": "Shipping carrier." },
+        { "name": "tracking_number", "type": "nvarchar(100)", "description": "Carrier tracking number." },
+        { "name": "shipment_status", "type": "nvarchar(30)", "description": "Shipment status, such as Pending, In Transit, or Delivered." }
+      ]
+    }
+  ],
+  "relationships": [
+    { "from": "dbo.regions.region_id", "to": "dbo.customers.region_id", "cardinality": "one_to_many" },
+    { "from": "dbo.regions.region_id", "to": "dbo.sales_reps.region_id", "cardinality": "one_to_many" },
+    { "from": "dbo.customers.customer_id", "to": "dbo.orders.customer_id", "cardinality": "one_to_many" },
+    { "from": "dbo.sales_reps.sales_rep_id", "to": "dbo.orders.sales_rep_id", "cardinality": "one_to_many" },
+    { "from": "dbo.product_categories.category_id", "to": "dbo.products.category_id", "cardinality": "one_to_many" },
+    { "from": "dbo.orders.order_id", "to": "dbo.order_items.order_id", "cardinality": "one_to_many" },
+    { "from": "dbo.products.product_id", "to": "dbo.order_items.product_id", "cardinality": "one_to_many" },
+    { "from": "dbo.orders.order_id", "to": "dbo.payments.order_id", "cardinality": "one_to_many" },
+    { "from": "dbo.orders.order_id", "to": "dbo.shipments.order_id", "cardinality": "one_to_zero_or_one" }
+  ],
+  "queryGuidance": [
+    "Always schema-qualify tables with dbo.",
+    "Prefer explicit JOIN syntax.",
+    "Use SELECT TOP 100 unless the user asks for aggregate-only results.",
+    "Use CAST or CONVERT only when needed for date grouping or formatting.",
+    "Return SQL Server compatible T-SQL only.",
+    "Never generate INSERT, UPDATE, DELETE, MERGE, DROP, ALTER, CREATE, EXEC, xp_*, sp_*, OPENROWSET, or OPENQUERY statements."
+  ]
+}
+

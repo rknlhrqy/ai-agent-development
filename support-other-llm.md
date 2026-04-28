@@ -160,6 +160,7 @@ tool behavior, plan mode, fallback logic, and model selection.
 With Ollama configured as:
 
 ```bash
+USER_TYPE=ant \
 CLAUDE_CODE_USE_OPENAI=1 \
 OPENAI_BASE_URL=http://127.0.0.1:11434/v1 \
 OPENAI_API_KEY=ollama \
