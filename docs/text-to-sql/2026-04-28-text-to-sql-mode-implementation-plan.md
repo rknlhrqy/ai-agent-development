@@ -163,7 +163,7 @@ Append these tests inside the existing `describe("Tool chain: getTools with cont
       expect(toolNames).toContain("Bash");
       expect(toolNames).toContain("Read");
       expect(toolNames).toContain("Edit");
-      expect(toolNames).toContain("DatabaseQuery");
+      expect(toolNames).toContain("DatabaseQueryTool");
     } finally {
       if (previous === undefined) {
         delete process.env.CLAUDE_CODE_TEXT_TO_SQL_MODE;
@@ -179,7 +179,7 @@ Append these tests inside the existing `describe("Tool chain: getTools with cont
     try {
       const ctx = getEmptyToolPermissionContext();
       const toolNames = getTools(ctx).map(tool => tool.name);
-      expect(toolNames).toEqual(["DatabaseQuery"]);
+      expect(toolNames).toEqual(["DatabaseQueryTool"]);
       expect(toolNames).not.toContain("Bash");
       expect(toolNames).not.toContain("Read");
       expect(toolNames).not.toContain("Edit");
@@ -226,7 +226,7 @@ Append this test after the `getTools` tests:
         call: async () => ({}),
       });
       const toolNames = assembleToolPool(ctx, [mcpTool]).map(tool => tool.name);
-      expect(toolNames).toEqual(["DatabaseQuery"]);
+      expect(toolNames).toEqual(["DatabaseQueryTool"]);
     } finally {
       if (previous === undefined) {
         delete process.env.CLAUDE_CODE_TEXT_TO_SQL_MODE;

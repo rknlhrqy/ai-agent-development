@@ -163,11 +163,6 @@ const getPowerShellTool = () => {
 }
 /* eslint-enable @typescript-eslint/no-require-imports */
 
-const DatabaseQueryRegistryTool: Tool = {
-  ...DatabaseQueryTool,
-  name: 'DatabaseQuery',
-}
-
 /**
  * Predefined tool presets that can be used with --tools flag
  */
@@ -191,7 +186,7 @@ export function parseToolPreset(preset: string): ToolPreset | null {
  */
 export function getToolsForDefaultPreset(): string[] {
   if (isTextToSqlModeEnabled()) {
-    return [DatabaseQueryRegistryTool.name]
+    return [DatabaseQueryTool.name]
   }
   const tools = getAllBaseTools()
   const isEnabled = tools.map(tool => tool.isEnabled())
@@ -227,7 +222,7 @@ export function getAllBaseTools(): Tools {
     AskUserQuestionTool,
     SkillTool,
     EnterPlanModeTool,
-    DatabaseQueryRegistryTool,
+    DatabaseQueryTool,
     ...(process.env.USER_TYPE === 'ant' ? [ConfigTool] : []),
     ...(process.env.USER_TYPE === 'ant' ? [TungstenTool] : []),
     ...(SuggestBackgroundPRTool ? [SuggestBackgroundPRTool] : []),
@@ -290,7 +285,7 @@ export function filterToolsByDenyRules<
 export const getTools = (permissionContext: ToolPermissionContext): Tools => {
   if (isTextToSqlModeEnabled()) {
     const textToSqlTools = filterToolsByDenyRules(
-      [DatabaseQueryRegistryTool],
+      [DatabaseQueryTool],
       permissionContext,
     )
     const isEnabled = textToSqlTools.map(tool => tool.isEnabled())

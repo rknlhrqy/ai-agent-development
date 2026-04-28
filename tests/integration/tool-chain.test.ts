@@ -107,7 +107,7 @@ describe("Tool chain: getTools with context", () => {
     }
   });
 
-  test("normal mode keeps Bash, Read, Edit, DatabaseQuery", () => {
+  test("normal mode keeps Bash, Read, Edit, DatabaseQueryTool", () => {
     const previousMode = process.env.CLAUDE_CODE_TEXT_TO_SQL_MODE;
     delete process.env.CLAUDE_CODE_TEXT_TO_SQL_MODE;
     try {
@@ -117,7 +117,7 @@ describe("Tool chain: getTools with context", () => {
       expect(toolNames).toContain("Bash");
       expect(toolNames).toContain("Read");
       expect(toolNames).toContain("Edit");
-      expect(toolNames).toContain("DatabaseQuery");
+      expect(toolNames).toContain("DatabaseQueryTool");
     } finally {
       if (previousMode === undefined) {
         delete process.env.CLAUDE_CODE_TEXT_TO_SQL_MODE;
@@ -127,14 +127,14 @@ describe("Tool chain: getTools with context", () => {
     }
   });
 
-  test("text-to-sql mode returns exactly DatabaseQuery", () => {
+  test("text-to-sql mode returns exactly DatabaseQueryTool", () => {
     const previousMode = process.env.CLAUDE_CODE_TEXT_TO_SQL_MODE;
     process.env.CLAUDE_CODE_TEXT_TO_SQL_MODE = "1";
     try {
       const ctx = getEmptyToolPermissionContext();
       const toolNames = getTools(ctx).map(tool => tool.name);
 
-      expect(toolNames).toEqual(["DatabaseQuery"]);
+      expect(toolNames).toEqual(["DatabaseQueryTool"]);
       expect(toolNames).not.toContain("Bash");
       expect(toolNames).not.toContain("Read");
       expect(toolNames).not.toContain("Edit");
@@ -168,7 +168,7 @@ describe("Tool chain: getTools with context", () => {
 
       const toolNames = assembleToolPool(ctx, [mcpTool]).map(tool => tool.name);
 
-      expect(toolNames).toEqual(["DatabaseQuery"]);
+      expect(toolNames).toEqual(["DatabaseQueryTool"]);
     } finally {
       if (previousMode === undefined) {
         delete process.env.CLAUDE_CODE_TEXT_TO_SQL_MODE;
