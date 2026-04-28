@@ -144,6 +144,10 @@ import { useSkillImprovementSurvey } from '../hooks/useSkillImprovementSurvey.js
 import { useMoreRight } from '../moreright/useMoreRight.js';
 import { SpinnerWithVerb, BriefIdleStatus, type SpinnerMode } from '../components/Spinner.js';
 import { getSystemPrompt } from '../constants/prompts.js';
+import {
+  getTextToSqlSystemPrompt,
+  isTextToSqlModeEnabled,
+} from 'src/services/database/textToSqlMode.js';
 import { buildEffectiveSystemPrompt } from '../utils/systemPrompt.js';
 import { getSystemContext, getUserContext } from '../context.js';
 import { getMemoryFiles } from '../utils/claudemd.js';
@@ -515,6 +519,16 @@ function median(values: number[]): number {
   const sorted = [...values].sort((a, b) => a - b);
   const mid = Math.floor(sorted.length / 2);
   return sorted.length % 2 === 0 ? Math.round((sorted[mid - 1]! + sorted[mid]!) / 2) : sorted[mid]!;
+}
+
+function appendTextToSqlSystemPrompt(
+  appendSystemPrompt: string | undefined,
+): string | undefined {
+  if (!isTextToSqlModeEnabled()) return appendSystemPrompt;
+  const textToSqlPrompt = getTextToSqlSystemPrompt();
+  return appendSystemPrompt
+    ? `${appendSystemPrompt}\n\n${textToSqlPrompt}`
+    : textToSqlPrompt;
 }
 
 /**
@@ -2973,7 +2987,7 @@ export function REPL({
         toolUseContext,
         customSystemPrompt,
         defaultSystemPrompt,
-        appendSystemPrompt,
+        appendSystemPrompt: appendTextToSqlSystemPrompt(appendSystemPrompt),
       });
       toolUseContext.renderedSystemPrompt = systemPrompt;
 
@@ -3338,7 +3352,7 @@ export function REPL({
         toolUseContext,
         customSystemPrompt,
         defaultSystemPrompt,
-        appendSystemPrompt,
+        appendSystemPrompt: appendTextToSqlSystemPrompt(appendSystemPrompt),
       });
       toolUseContext.renderedSystemPrompt = systemPrompt;
 
@@ -6298,7 +6312,9 @@ export function REPL({
                         toolUseContext: context,
                         customSystemPrompt: context.options.customSystemPrompt,
                         defaultSystemPrompt: defaultSysPrompt,
-                        appendSystemPrompt: context.options.appendSystemPrompt,
+                        appendSystemPrompt: appendTextToSqlSystemPrompt(
+                          context.options.appendSystemPrompt,
+                        ),
                       });
                       const [userContext, systemContext] = await Promise.all([getUserContext(), getSystemContext()]);
 
