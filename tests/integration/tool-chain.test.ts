@@ -1,5 +1,10 @@
 import { describe, expect, test } from "bun:test";
-import { getAllBaseTools, parseToolPreset, getTools } from "../../src/tools.ts";
+import {
+  assembleToolPool,
+  getAllBaseTools,
+  parseToolPreset,
+  getTools,
+} from "../../src/tools.ts";
 import {
   findToolByName,
   getEmptyToolPermissionContext,
@@ -99,6 +104,77 @@ describe("Tool chain: getTools with context", () => {
     for (const tool of tools) {
       expect(tool.name).toBeTruthy();
       expect(typeof tool.call).toBe("function");
+    }
+  });
+
+  test("normal mode keeps Bash, Read, Edit, DatabaseQuery", () => {
+    const previousMode = process.env.CLAUDE_CODE_TEXT_TO_SQL_MODE;
+    delete process.env.CLAUDE_CODE_TEXT_TO_SQL_MODE;
+    try {
+      const ctx = getEmptyToolPermissionContext();
+      const toolNames = getTools(ctx).map(tool => tool.name);
+
+      expect(toolNames).toContain("Bash");
+      expect(toolNames).toContain("Read");
+      expect(toolNames).toContain("Edit");
+      expect(toolNames).toContain("DatabaseQuery");
+    } finally {
+      if (previousMode === undefined) {
+        delete process.env.CLAUDE_CODE_TEXT_TO_SQL_MODE;
+      } else {
+        process.env.CLAUDE_CODE_TEXT_TO_SQL_MODE = previousMode;
+      }
+    }
+  });
+
+  test("text-to-sql mode returns exactly DatabaseQuery", () => {
+    const previousMode = process.env.CLAUDE_CODE_TEXT_TO_SQL_MODE;
+    process.env.CLAUDE_CODE_TEXT_TO_SQL_MODE = "1";
+    try {
+      const ctx = getEmptyToolPermissionContext();
+      const toolNames = getTools(ctx).map(tool => tool.name);
+
+      expect(toolNames).toEqual(["DatabaseQuery"]);
+      expect(toolNames).not.toContain("Bash");
+      expect(toolNames).not.toContain("Read");
+      expect(toolNames).not.toContain("Edit");
+      expect(toolNames).not.toContain("Write");
+      expect(toolNames).not.toContain("WebFetch");
+      expect(toolNames).not.toContain("WebSearch");
+      expect(toolNames).not.toContain("Agent");
+    } finally {
+      if (previousMode === undefined) {
+        delete process.env.CLAUDE_CODE_TEXT_TO_SQL_MODE;
+      } else {
+        process.env.CLAUDE_CODE_TEXT_TO_SQL_MODE = previousMode;
+      }
+    }
+  });
+
+  test("text-to-sql mode assembleToolPool excludes MCP tools", () => {
+    const previousMode = process.env.CLAUDE_CODE_TEXT_TO_SQL_MODE;
+    process.env.CLAUDE_CODE_TEXT_TO_SQL_MODE = "1";
+    try {
+      const ctx = getEmptyToolPermissionContext();
+      const mcpTool = buildTool({
+        name: "mcp__database__lookup",
+        description: "Fake MCP lookup tool",
+        inputSchema: {
+          type: "object" as const,
+          properties: {},
+        },
+        call: async () => ({}),
+      });
+
+      const toolNames = assembleToolPool(ctx, [mcpTool]).map(tool => tool.name);
+
+      expect(toolNames).toEqual(["DatabaseQuery"]);
+    } finally {
+      if (previousMode === undefined) {
+        delete process.env.CLAUDE_CODE_TEXT_TO_SQL_MODE;
+      } else {
+        process.env.CLAUDE_CODE_TEXT_TO_SQL_MODE = previousMode;
+      }
     }
   });
 });

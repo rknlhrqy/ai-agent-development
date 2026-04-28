@@ -233,6 +233,154 @@ src/tools.ts
 The dependency update adds the MS SQL Server client library. The tool registry
 update makes the database query tool available to the assistant.
 
+## Prompt-Building Path
+
+Here is the prompt-building path for a normal user question in this app.
+
+### Main Request Flow
+
+The REPL prepares context in `src/screens/REPL.tsx` around line 2960:
+
+```text
+getSystemPrompt(...)
+getUserContext()
+getSystemContext()
+buildEffectiveSystemPrompt(...)
+```
+
+Then `query()` receives those pieces in `src/query.ts` around line 492:
+
+```text
+systemPrompt
+systemContext
+userContext
+conversation messages
+available tools
+```
+
+`query()` builds the final high-level request:
+
+```text
+fullSystemPrompt = appendSystemContext(systemPrompt, systemContext)
+messages = prependUserContext(messagesForQuery, userContext)
+```
+
+The API layer then sends:
+
+```text
+system prompt blocks
+user/assistant messages
+tool schemas
+model name
+metadata/beta flags
+```
+
+### Where Each Piece Comes From
+
+- System prompt: mostly from `src/constants/prompts.ts`, then adjusted by
+  `buildEffectiveSystemPrompt(...)`.
+- System context: built in `src/context.ts` around line 111, mainly including
+  git status and optional cache breaker text.
+- User context: built in `src/context.ts` around line 155, mainly including
+  `CLAUDE.md` content and the current date.
+- User context is prepended as a special user message using `src/utils/api.ts`
+  around line 447.
+- System context is appended to the system prompt using `src/utils/api.ts`
+  around line 436.
+
+### Tools
+
+Tools are not simply pasted into the system prompt. They are converted into API
+tool schemas in `src/utils/api.ts` around line 119.
+
+For each tool, the API schema includes:
+
+```text
+tool name
+input schema
+tool.prompt(...) output as the tool description
+```
+
+The database tool contributes prompt text from:
+
+```text
+packages/builtin-tools/src/tools/DatabaseQueryTool/prompt.ts
+```
+
+That means the main model sees that there is a database query tool and learns
+when and how to use it. It does not receive the full database schema catalog in
+the main prompt.
+
+### Database Query Tool Special Flow
+
+When the model chooses the database tool, the tool creates a second model
+request from:
+
+```text
+src/services/database/sqlGeneration.ts
+```
+
+That second request includes:
+
+```text
+SQL-generation system prompt
+schema catalog JSON
+user's natural language question
+```
+
+The schema catalog comes from:
+
+```text
+src/services/database/schemaCatalog.ts
+```
+
+Default path:
+
+```text
+packages/database-testbed/schema-catalog/sample-sales.json
+```
+
+### Provider Layer
+
+For Claude/Anthropic, the final request is assembled in
+`src/services/api/claude.ts` around line 1253.
+
+There it builds:
+
+```text
+toolSchemas
+final system prompt blocks
+message list
+request metadata
+```
+
+For OpenAI/Ollama-compatible models, the already-normalized Anthropic-style
+request is converted to OpenAI chat format later in the OpenAI provider path.
+
+So the final prompt is really a bundle:
+
+```text
+System prompt
++ appended system context
++ prepended user context message
++ conversation messages
++ tool schemas/descriptions
++ provider-specific headers/prefixes
+```
+
+For the database feature specifically:
+
+```text
+Main LLM request:
+  system prompt + user context + messages + DatabaseQueryTool schema
+
+If tool is called:
+  second LLM request:
+    SQL-generation system prompt
+    + schema catalog/training data
+    + user's database question
+```
+
 ## Important Environment Variables
 
 ```text

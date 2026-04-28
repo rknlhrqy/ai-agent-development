@@ -144,6 +144,7 @@ import type { ToolPermissionContext } from './Tool.js'
 import { getDenyRuleForTool } from './utils/permissions/permissions.js'
 import { hasEmbeddedSearchTools } from './utils/embeddedTools.js'
 import { isEnvTruthy } from './utils/envUtils.js'
+import { isTextToSqlModeEnabled } from './services/database/textToSqlMode.js'
 import { isPowerShellToolEnabled } from './utils/shell/shellToolUtils.js'
 import { isAgentSwarmsEnabled } from './utils/agentSwarmsEnabled.js'
 import { isWorktreeModeEnabled } from './utils/worktreeModeEnabled.js'
@@ -161,6 +162,11 @@ const getPowerShellTool = () => {
   ).PowerShellTool
 }
 /* eslint-enable @typescript-eslint/no-require-imports */
+
+const DatabaseQueryRegistryTool: Tool = {
+  ...DatabaseQueryTool,
+  name: 'DatabaseQuery',
+}
 
 /**
  * Predefined tool presets that can be used with --tools flag
@@ -184,6 +190,9 @@ export function parseToolPreset(preset: string): ToolPreset | null {
  * @returns Array of tool names
  */
 export function getToolsForDefaultPreset(): string[] {
+  if (isTextToSqlModeEnabled()) {
+    return [DatabaseQueryRegistryTool.name]
+  }
   const tools = getAllBaseTools()
   const isEnabled = tools.map(tool => tool.isEnabled())
   return tools.filter((_, i) => isEnabled[i]).map(tool => tool.name)
@@ -218,7 +227,7 @@ export function getAllBaseTools(): Tools {
     AskUserQuestionTool,
     SkillTool,
     EnterPlanModeTool,
-    DatabaseQueryTool,
+    DatabaseQueryRegistryTool,
     ...(process.env.USER_TYPE === 'ant' ? [ConfigTool] : []),
     ...(process.env.USER_TYPE === 'ant' ? [TungstenTool] : []),
     ...(SuggestBackgroundPRTool ? [SuggestBackgroundPRTool] : []),
@@ -279,6 +288,15 @@ export function filterToolsByDenyRules<
 }
 
 export const getTools = (permissionContext: ToolPermissionContext): Tools => {
+  if (isTextToSqlModeEnabled()) {
+    const textToSqlTools = filterToolsByDenyRules(
+      [DatabaseQueryRegistryTool],
+      permissionContext,
+    )
+    const isEnabled = textToSqlTools.map(tool => tool.isEnabled())
+    return textToSqlTools.filter((_, i) => isEnabled[i])
+  }
+
   // Simple mode: only Bash, Read, and Edit tools
   if (isEnvTruthy(process.env.CLAUDE_CODE_SIMPLE)) {
     // --bare + REPL mode: REPL wraps Bash/Read/Edit/etc inside the VM, so
@@ -357,6 +375,10 @@ export function assembleToolPool(
   mcpTools: Tools,
 ): Tools {
   const builtInTools = getTools(permissionContext)
+
+  if (isTextToSqlModeEnabled()) {
+    return builtInTools
+  }
 
   // Filter out MCP tools that are in the deny list
   const allowedMcpTools = filterToolsByDenyRules(mcpTools, permissionContext)
