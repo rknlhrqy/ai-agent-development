@@ -62,6 +62,7 @@ import { loadMemoryPrompt } from '../memdir/memdir.js'
 import { isUndercover } from '../utils/undercover.js'
 import { getAntModelOverrideConfig } from '../utils/model/antModels.js'
 import { isMcpInstructionsDeltaEnabled } from '../utils/mcpInstructionsDelta.js'
+import { getPromptModelIdentity } from '../utils/model/promptModelIdentity.js'
 
 // Dead code elimination: conditional imports for feature-gated modules
 /* eslint-disable @typescript-eslint/no-require-imports */
@@ -700,10 +701,11 @@ export async function computeEnvInfo(
   if (process.env.USER_TYPE === 'ant' && isUndercover()) {
     // suppress
   } else {
-    const marketingName = getMarketingNameForModel(modelId)
+    const promptModelId = getPromptModelIdentity(modelId)
+    const marketingName = getMarketingNameForModel(promptModelId)
     modelDescription = marketingName
-      ? `You are powered by the model named ${marketingName}. The exact model ID is ${modelId}.`
-      : `You are powered by the model ${modelId}.`
+      ? `You are powered by the model named ${marketingName}. The exact model ID is ${promptModelId}.`
+      : `You are powered by the model ${promptModelId}.`
   }
 
   const additionalDirsInfo =
@@ -739,10 +741,11 @@ export async function computeSimpleEnvInfo(
   if (process.env.USER_TYPE === 'ant' && isUndercover()) {
     // suppress
   } else {
-    const marketingName = getMarketingNameForModel(modelId)
+    const promptModelId = getPromptModelIdentity(modelId)
+    const marketingName = getMarketingNameForModel(promptModelId)
     modelDescription = marketingName
-      ? `You are powered by the model named ${marketingName}. The exact model ID is ${modelId}.`
-      : `You are powered by the model ${modelId}.`
+      ? `You are powered by the model named ${marketingName}. The exact model ID is ${promptModelId}.`
+      : `You are powered by the model ${promptModelId}.`
   }
 
   const cutoff = getKnowledgeCutoff(modelId)

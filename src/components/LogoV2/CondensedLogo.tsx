@@ -13,6 +13,7 @@ import {
   truncatePath,
 } from '../../utils/logoV2Utils.js'
 import { renderModelSetting } from '../../utils/model/model.js'
+import { getPromptModelIdentity } from '../../utils/model/promptModelIdentity.js'
 import { OffscreenFreeze } from '../OffscreenFreeze.js'
 import { AnimatedClawd } from './AnimatedClawd.js'
 import { Clawd } from './Clawd.js'
@@ -32,7 +33,7 @@ export function CondensedLogo(): ReactNode {
   const agent = useAppState(s => s.agent)
   const effortValue = useAppState(s => s.effortValue)
   const model = useMainLoopModel()
-  const modelDisplayName = renderModelSetting(model)
+  const modelDisplayName = renderModelSetting(getPromptModelIdentity(model))
   const { version, cwd, billingType, agentName: agentNameFromSettings } = getLogoDisplayData()
 
   // Prefer AppState.agent (set from --agent CLI flag) over settings

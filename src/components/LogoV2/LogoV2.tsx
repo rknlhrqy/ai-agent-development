@@ -78,6 +78,7 @@ import { useAppState } from '../../state/AppState.js'
 import { getEffortSuffix } from '../../utils/effort.js'
 import { useMainLoopModel } from '../../hooks/useMainLoopModel.js'
 import { renderModelSetting } from '../../utils/model/model.js'
+import { getPromptModelIdentity } from '../../utils/model/promptModelIdentity.js'
 
 const LEFT_PANEL_MAX_WIDTH = 50
 
@@ -161,7 +162,7 @@ export function LogoV2(): React.ReactNode {
   ])
 
   const model = useMainLoopModel()
-  const fullModelDisplayName = renderModelSetting(model)
+  const fullModelDisplayName = renderModelSetting(getPromptModelIdentity(model))
   const {
     version,
     cwd,
@@ -498,4 +499,3 @@ export function LogoV2(): React.ReactNode {
     </>
   )
 }
-
