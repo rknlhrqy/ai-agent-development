@@ -6,6 +6,8 @@ question, the assistant asks the model to generate a safe SQL Server `SELECT`
 query, runs that query against MS SQL Server, and displays both the generated
 SQL script and the returned data.
 
+When `CLAUDE_CODE_TEXT_TO_SQL_MODE=1` is enabled, the assistant treats user messages as database data requests by default. It can answer brief help or clarification questions about its database-assistant role, but it refuses non-database requests instead of acting like a general coding assistant.
+
 ## What It Does
 
 - Accepts a natural-language database question from the user.
@@ -92,6 +94,7 @@ From the repository root:
 
 ```bash
 USER_TYPE=ant \
+CLAUDE_CODE_TEXT_TO_SQL_MODE=1 \
 CLAUDE_CODE_USE_OPENAI=1 \
 OPENAI_BASE_URL=http://127.0.0.1:11434/v1 \
 OPENAI_API_KEY=ollama \
@@ -104,6 +107,7 @@ schema catalog path explicitly:
 
 ```bash
 USER_TYPE=ant \
+CLAUDE_CODE_TEXT_TO_SQL_MODE=1 \
 CLAUDE_CODE_USE_OPENAI=1 \
 OPENAI_API_KEY=ollama \
 OPENAI_BASE_URL=http://localhost:11434/v1 \
@@ -384,6 +388,7 @@ If tool is called:
 ## Important Environment Variables
 
 ```text
+CLAUDE_CODE_TEXT_TO_SQL_MODE=1
 CLAUDE_CODE_USE_OPENAI=1
 OPENAI_API_KEY=ollama
 OPENAI_BASE_URL=http://localhost:11434/v1
